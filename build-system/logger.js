@@ -17,6 +17,13 @@ module.exports = {
       chalk.dim(msg)
     )
   },
+  fileInfo (file) {
+    const time = getTime()
+    log(
+      chalk.dim(`[${time}]  - `) +
+      chalk.dim(file)
+    )
+  },
   timer (msg, duration) {
     log(
       chalk.dim(`[${getTime()}] `) +

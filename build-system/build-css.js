@@ -1,10 +1,21 @@
 const isDev = process.env.NODE_ENV === 'development'
 const fse = require('fs-extra')
-const { log } = console
-const chalk = require('chalk')
+const { fileEvent, timer } = require('./logger')
+const { paths } = require('./config')
 const glob = require('glob')
 const chokidar = require('chokidar')
-const sass = require('sass')
+
+/**
+ * PostCSS plugin setup
+ */
+const autoprefixer = require('autoprefixer')
+const postcssimport = require('postcss-import')
+const tailwind = require('tailwindcss')({
+  config: require('./tailwind')
+})
+const purgecss = require('@fullhuman/postcss-purgecss')({
+  content: paths.css.purge
+})
 const postcss = require('postcss')
 const polyfills = require('postcss-preset-env')({
   stage: 1,
@@ -12,72 +23,97 @@ const polyfills = require('postcss-preset-env')({
   preserve: false
 })
 const compress = require('cssnano')
-const purgecss = require('@fullhuman/postcss-purgecss')({
-  content: [
-    './src/php/**/*.{php,twig}',
-    './src/js/**/*.js'
-  ]
-})
-const { fileEvent, timer } = require('./logger')
+const plugins = isDev
+  ? [postcssimport, tailwind]
+  : [postcssimport, tailwind, purgecss, autoprefixer, polyfills, compress]
 
-const plugins = () => {
-  return isDev
-    ? [polyfills]
-    : [polyfills, compress, purgecss]
-}
-
-const entries = [
-  'src/css/modules/*.scss'
-]
-
-const entriesFlat = entries
+/**
+ * Main logic
+ */
+const modules = paths.css.modules
+const modulesFlat = () => modules
   .map(pattern => glob.sync(pattern))
   .flat()
 
-const preprocess = (file, fileName) => {
+const preprocess = (file) => {
   const start = Date.now()
-  const sassified = sass.renderSync({ file })
-  const to = `static/dist/css/${fileName}.css`
-  postcss(plugins())
-    .process(sassified.css, { from: file , to, map: { inline: false } })
-    .then((result) => {
-      fse.outputFile(to, result.css, () => true)
-      if ( result.map ) {
-        fse.outputFile(`${to}.map`, result.map.toString(), () => true)
-      }
-      timer(file, Date.now() - start)
-    })
-}
-
-/**
- * Take an array of globs, pass each to glob, take the files array returned
- * by glob, and preprocess each of them. I know... loops on loops.
- */
-const runBatch = (filePath) => {
-  entriesFlat.forEach((file) => {
-    // Only rebuild if no filepath was sent (rebuild all), or the file that was changed
-    if (!filePath || filePath === file) {
-      const fileName = file.match(/(\w|\d|\-)+(?=\.scss)/)[0]
-      preprocess(file, fileName)
-    }
+  /**
+   * Just the filename without extension is needed for postcss to
+   * create a matching output file
+   */
+  const fileName = file.match(/(\w|\d|\-)+(?=\.pcss)/)[0]
+  const to = `${paths.css.dist}/${fileName}.css`
+  fse.readFile(file, (err, css) => {
+    postcss(plugins)
+      .process(css, { from: file , to })
+      .then((result) => {
+        fse.outputFile(to, result.css, () => true)
+        if (result.map) {
+          fse.outputFile(`${to}.map`, result.map.toString(), () => true)
+        }
+        timer(file, Date.now() - start)
+      })
   })
 }
 
 /**
- * On boot always do an initial compile
+ * Preprocess all modules
  */
-runBatch()
+const processAll = () => {
+  fileEvent('boot', 'All CSS', 'Build System started')
+  modulesFlat().forEach((file) => {
+    preprocess(file)
+  })
+}
+
+/**
+ * Preprocess a single module that is given
+ */
+const processModule = (event, filePath) => {
+  fileEvent(event, filePath, 'Module Changed: Rebuilding')
+  const file = modulesFlat().find(file => file === filePath)
+  preprocess(file)
+}
+
+/**
+ * Find the parent module that references the given partial 
+ * and preprocess it
+ */
+const processParent = (event, filePath) => {
+  /**
+   * strip path away, so we can match relative paths in parent modules
+   */
+  const partial = filePath.match(/(\w|\d|\-)+\.pcss/)[0]
+  fileEvent(event, filePath, 'Partial Changed: Rebuilding Parent Module')
+  modulesFlat().forEach((file) => {
+    /**
+     * read current file and if it references the partial,
+     * preprocess it and end the loop
+     */
+    fse.readFile(file, (err, contents) => {
+      if (err) console.log(err)
+      if (contents.includes(partial)) {
+        preprocess(file)
+      }
+    })
+  })
+}
+
+/**
+ * On boot always do an initial build
+ */
+processAll()
 
 if (isDev) {
   /**
-   * Use chokidar for our watcher to re-run our batch
+   * Use chokidar for our watcher to re-run our batch when
+   * an add or change occurs
    */
   chokidar
-    .watch(entries, { ignoreInitial: true })
+    .watch(paths.css.watch, { ignoreInitial: true })
     .on('all', (event, filePath) => {
-      fileEvent(event, filePath, 'Rebuilding CSS')
-      runBatch(filePath)
+      if (event !== 'add' && event !== 'change') return
+      if (filePath.includes('modules')) processModule(event, filePath)
+      if (filePath.includes('partials')) processParent(event, filePath)
     })
-} else {
-  log(chalk.cyan(`✓ CSS built`))
 }

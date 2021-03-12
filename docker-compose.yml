@@ -21,4 +21,3 @@ services:
       - ./static:/home/node/app/static
       # Build System scripts
       - ./build-system:/home/node/app/build-system
-      - ./package.json:/home/node/app/package.json

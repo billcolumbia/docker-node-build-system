@@ -6,6 +6,7 @@ const svg = require('imagemin-svgo')
 const gif = require('imagemin-gifsicle')
 const chalk = require('chalk')
 const rimraf = util.promisify(require('rimraf'))
+const { paths } = require('./config')
 const { log } = console
 
 /*
@@ -22,8 +23,8 @@ const { log } = console
 
 const directories = [
   {
-    source: ['src/images/misc/**/*.{jpg,png,svg,gif}'],
-    destination: 'static/dist/images/misc',
+    source: [`${paths.images.src}/misc/**/*.{jpg,png,svg,gif}`],
+    destination: `${paths.images.dist}/misc`,
     plugins: [
       jpeg({ quality: 60 }),
       png(),
@@ -32,8 +33,8 @@ const directories = [
     ]
   },
   {
-    source: ['src/images/logos/**/*.{jpg,png,svg}'],
-    destination: 'static/dist/images/logos',
+    source: [`${paths.images.src}/logos/**/*.{jpg,png,svg}`],
+    destination: `${paths.images.dist}/logos`,
     plugins: [
       jpeg({ quality: 60 }),
       png(),
@@ -41,8 +42,8 @@ const directories = [
     ]
   },
   {
-    source: ['src/images/icons/**/*.svg'],
-    destination: 'static/dist/images/icons',
+    source: [`${paths.images.src}/icons/**/*.svg`],
+    destination: `${paths.images.dist}/icons`,
     plugins: [
       svg({
         plugins: [
@@ -56,12 +57,12 @@ const directories = [
 ]
 
 const optimize = async () => {
-  log(chalk.redBright('\n🧹 Cleaning dist/images...\n'))
-  await rimraf('./static/dist/images/{**/*,*}')
-  log(chalk.green('✨ All clean!\n'))
+  log(chalk.redBright('\n🧹 Cleaning dist/images...'))
+  await rimraf(`${paths.images.dist}/{**/*,*}`)
+  log(chalk.green('✨ All clean!'))
 
   const start = Date.now()
-  log(chalk.cyan('🗜  Optimizing images...\n'))
+  log(chalk.cyan('🗜  Optimizing images...'))
   await Promise.all(directories.map(async (dir) => {
     const { source, destination, plugins } = dir
     const batch = await imagemin(source, { destination, plugins })
@@ -69,7 +70,7 @@ const optimize = async () => {
       log(chalk.dim(' - ' + file.destinationPath))
     })
   }))
-  log(chalk.green(`\n✅ Images optimized in ${Date.now() - start}ms`))
+  log(chalk.green(`✅ Images optimized in ${Date.now() - start}ms`))
 }
 
 optimize()

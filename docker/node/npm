@@ -1,0 +1,5 @@
+#!/bin/bash
+
+docker-compose exec buildsystem $@
+docker cp $(basename $(pwd))_buildsystem_1:/home/node/app/package.json package.json
+docker-compose up -d --build buildsystem

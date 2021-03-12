@@ -1,5 +1,8 @@
+import { coal } from '../util/math'
+
 const sayHi = () => {
-  console.log(`Hello, I'm two!!`)
+  const num = coal()
+  console.log(`Hello, I'm ${num}!`)
 }
 
 sayHi()

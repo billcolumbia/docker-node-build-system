@@ -4,6 +4,7 @@ const glob = require('glob')
 const chalk = require('chalk')
 const log = console.log
 const { gzipSync } = require('zlib')
+const { sizeCheck } = require('./config')
 
 /*
  *--------------------------------------------------------------------------
@@ -109,13 +110,4 @@ const SizeCheck = async (ruleList) => {
     .forEach(file => logFileStats(file))
 }
 
-SizeCheck([
-  {
-    pattern: 'static/dist/**/*.js',
-    limit: 20
-  },
-  {
-    pattern: 'static/dist/**/*.css',
-    limit: 15
-  }
-])
+SizeCheck(sizeCheck.options)

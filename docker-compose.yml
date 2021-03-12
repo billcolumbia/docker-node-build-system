@@ -1,0 +1,24 @@
+version: '2'
+
+services:
+  webserver:
+    image: nginx:alpine
+    ports:
+      - '8080:80'
+    volumes:
+      - ./static:/usr/share/nginx/html
+  buildsystem:
+    build:
+      context: .
+      dockerfile: './docker/node/Dockerfile'
+    ports:
+      - '3000:3000'
+    tty: true
+    volumes:
+      # CSS/JS/Images Source
+      - ./src:/home/node/app/src
+      # CSS/JS/Images Compiled
+      - ./static:/home/node/app/static
+      # Build System scripts
+      - ./build-system:/home/node/app/build-system
+      - ./package.json:/home/node/app/package.json

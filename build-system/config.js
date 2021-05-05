@@ -1,5 +1,5 @@
 module.exports = {
-  js: {
+  jsOptions: {
     verboseErrors: false
   },
   paths: {

@@ -1,6 +1,6 @@
 const isDev = process.env.NODE_ENV === 'development'
 const { fileEvent, fileInfo, timer } = require('./logger')
-const { paths, js } = require('./config')
+const { paths, jsOptions } = require('./config')
 const fs = require('fs')
 const esbuild = require('esbuild')
 const sveltePlugin = require('esbuild-svelte')
@@ -10,6 +10,10 @@ const chokidar = require('chokidar')
 const modules = paths.js.modules
 const modulesFlat = () => modules.map((pattern) => globby.sync(pattern)).flat()
 
+/**
+ * Build/bundle our JavaScript with esbuild
+ * @param {Array} entries
+ */
 const build = (entries) => {
   const start = Date.now()
   esbuild
@@ -23,7 +27,7 @@ const build = (entries) => {
       target: ['es2020']
     })
     .catch((err) => {
-      if (js.verboseErrors) console.log(err)
+      if (jsOptions.verboseErrors) console.log(err)
     })
   entries.forEach((file) => fileInfo(file))
   timer('Modules', Date.now() - start)

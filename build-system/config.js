@@ -1,35 +1,32 @@
 module.exports = {
   paths: {
-    dist: 'dist',
+    dist: 'static/dist',
     js: {
       modules: ['src/js/modules/*.js'],
       watch: ['src/js/**/*.js'],
-      dist: 'dist/js'
+      dist: 'static/dist/js'
     },
     css: {
-      modules: ['src/css/modules/*.pcss'],
-      watch: ['src/css/**/*.pcss'],
-      dist: 'dist/css',
-      purge: [
-        './static/**/*.{html}',
-        './src/js/**/*.js'
-      ]
+      modules: ['src/css/modules/*.css'],
+      watch: ['src/css/**/*.css', './static/*.{html,twig}'],
+      dist: 'static/dist/css',
+      purge: ['./static/**/*.{html,twig}', './src/js/**/*.js']
     },
     images: {
       src: 'src/images',
-      dist: 'dist/images'
+      dist: 'static/dist/images'
     }
   },
   sizeCheck: {
     options: [
       {
-        pattern: 'dist/**/*.js',
+        pattern: 'static/dist/**/*.js',
         limit: 20
       },
       {
-        pattern: 'dist/**/*.css',
+        pattern: 'static/dist/**/*.css',
         limit: 15
       }
     ]
-  }  
+  }
 }

@@ -1,91 +1,105 @@
-# Build System
+# Readme
 
-This is a front-end build system that handles processing of Images, CSS, and JavaScript. The goal of this project was to keep the system as lean and as close to core dependencies as possible.
+## About
 
-## Problem/Why?
+A build system that cuts through layers of abstraction to directly use the APIs of the tools we like.
 
-Projects like WordPress and CakePHP do not provide any modern front-end tooling. So in some cases we need to add at least _something_, because there is nothing out of the box.
+## Usage
+- `nvm use`
+- `npm install`
+- new term tab: `cd static && php -S 0.0.0.0:8080`
+- `npm run dev`
 
-Some projects like Laravel or Vue come with some front-end tooling &mdash; see [mix](https://laravel-mix.com/) and [vite](https://github.com/vitejs/vite). These tools are great if you are building your app with modest constraints, modest performance goals, an ability to adopt most conventions of the ecosystem.
+## Docs
 
-We have the occasional frankenstein's monster of enterprise constraints, want absolute speed, we usually can't adopt most conventions of an entire ecosystem. We had [some troubles with this](https://github.com/vuejs-templates/webpack/issues/78) on the Directory project.
+We will break down each piece of the system and highlight some of the decision making process behind each.
 
-### Why not Gulp or Webpack?
+**Sections:**
+- [CSS](#css)
+- [JavaScript](#javascript)
+- [Reload & Injection](reload-injection)
+- [Size Check](#size-check)
+- [Logger](#logger)
+- [Manifest](#manifest)
 
-Gulp and Webpack require plugins or 'loaders' to add all functionality we need. Most of these are not supported by the core teams and can become stale more quickly that our projects lifetime.
-
-By using these third party plugins and loaders we usually end up incurring a performance hit as well.
-
-Upgrading these cobbled together systems can be a pain and migrating them can be even worse. We've done that a few times now with projects like Bridge and Apollo.
-
-## Our real needs
-
-Instead of plugging into larger projects we realized a few simple truths.
-
-### JavaScript
-- We need JS to be minimally processed. We don't do fancy automated splitting or imports, no CSS-in-JS, our non-app sites don't need hot module injection, etc.
-- We need JavaScript to be made usuable for older browsers and compressed.
-- A good old fashioned reload on file change would be fine.
+---
 
 ### CSS
-- We don't need our JavaScript bundler to handle our CSS.
-- We are writing CSS closer and closer to what browsers ship with these days so why is working with it getting more complicated? We need to have a few CSS manifest files that include smaller chunks of CSS.
-- Those output (manifest) files should be polyfilled for older browsers and compressed.
-- Ideally file changes trigger re-processing and injection.
+```
+- src
+  - css
+    - modules
+      - utilities.pcss
+      - base.pcss
+    - partials
+      - browser-quirks.pcss
+```
+Our CSS will be written as *modules*. Each module will be processed into an output file of the same name in the `dist` directory. Modules can be composed of more than one *partial* by importing them.
 
-### Images
-- We don't need fancy SVG tools. Figma exports SVGs very clean and with minor need for tweaks that only occur at initial export.
-- It's really easy to paste new SVGs into a folder once.
-- All image types (png, jpg, gif, svg) can be compressed with imagemin.
+This pattern is nice because we can break our CSS up into modules and then only include the modules on pages that need them. 
 
-### Misc
-- Reload/injection behavior for when files change.
-- Logger that tells us what is going on.
-- Reporter for our compiled file sizes.
-- Manifest of all our assets with a hash based on their file contents.
-- Linters to make sure we keep the code tidy for each other.
+This approach is not a dogma. Be pragmatic. If 90% of pages use classes from 'base.pcss', it's _most likely ok_ to include everywhere. If 'blog.pcss' is 50kb, _maybe don't_ include it everywhere. Don't over think it.
 
-## Solution
-
-### Core APIs
-When we use things like Mix or Webpack they are are still referecing core tooling like Babel, Chokidar, PostCSS, etc. If you look at the API's for each of these lower level core tools it's usually pretty good.
-
-So the main idea here is we can use these APIs ourselves without writing too much code. Including comments *AND* build scripts in `package.json` this project is about 400 lines. If you were reading the equivilent length in text that's only about 15 minutes of reading for every single line of this project!
-
-### Low overhead
-A side-effect of using these core APIs is we now have no overhead from third party code. We are interacting directly with the tool for it's core functionality.
-
-### Freedom
-We have the freedom to control the entire input -> output of our system.
-
-## What does this look like?
-
-At the time of writing here are all the core feature as npm scripts:
-```json
-{
-  "css:build": "node ./build-system/build-css.js",
-  "css:lint": "stylelint 'src/css/**/*.pcss'",
-  "js:build": "node ./build-system/build-js.js",
-  "js:lint": "standard 'src/js/**/*.js' --verbose | snazzy",
-  "payloads": "node ./build-system/size-check.js",
-  "images:compress": "node ./build-system/optimize-images.js",
-  "manifest": "node ./build-system/create-manifest.js",
-  "reload": "anubis -f 'dist/**/*.{js,css}' -f 'cms/{modules,templates}/**/*.twig' -t 'http://nginx:80' -o false",
-  "dev": "NODE_ENV=development npm-run-all images:compress --parallel css:build js:build reload",
-  "build": "NODE_ENV=production run-s images:compress js:build css:build manifest js:lint css:lint payloads"
-}
+The npm script calls a file to be executed by node:
+```shell
+node ./build-system/build-css.js
 ```
 
-In total there are 8 scripts and 2 super-scripts. Super-scripts is fancy speak for scripts that are actually made up of the other 8 scripts that run sequentially (build) or concurrently (dev). Each piece is mostly responsible for and empowered to do what it does best and nothing more.
+The build-css script uses [PostCSS](https://github.com/postcss/postcss) to process our CSS. PostCSS uses 'plugins' to transform our code.
+- [Imports](https://github.com/postcss/postcss-import) let us write CSS that includes other CSS at build time, rahter than run time.
+- [Tailwind with JIT](https://tailwindcss.com) helps us maintain industry naming patterns and best practices for utility classes.
+- [Polyfills](https://github.com/csstools/postcss-preset-env) and [Autoprefixer](https://github.com/postcss/autoprefixer) make sure our CSS works with older browsers.
+- [CSSNano](https://github.com/cssnano/cssnano) compresses our CSS.
+- [Chokidar](https://github.com/paulmillr/chokidar) watches our files for changes, so we can re-process them.
 
-## Ok but...
+### JavaScript
 
-**Q:** Now we have to maintain code that interacts with things like Chokidar, node fs, glob, chalk, etc. What happens when these break or change suddenly. That's not great either, right?
+```
+- src
+  - js
+    - modules
+      - base.js
+      - social-widget.js
+      - hello.js
+    - utils
+      - uuid.js
+    - components
+      - Hello.svelte
+    - polyfills
+      - detector.js
+```
 
-**A:** These libraries are s.o.l.i.d. Chokidar for instance has over 30 million weekly downloads. If it breaks, the whole internet is going to freak out. In short: we will have company.
+Much like the CSS, files in side the `js/modules` folder will be output to `dist` by the same name. Smaller pieces of JavaScript can live in any other subfolders under js folder (`js/**`). For example there might be folders for utilities, polyfills, or vendor libraries.
 
+The npm script calls a file to be executed by node:
+```shell
+node ./build-system/build-js.js
+```
 
+We use [esbuild](https://esbuild.github.io/) to bundle are JavaScript files and make sure they run in older browsers.
 
+### Reload & Injection
 
+Reloads and CSS injection are important parts of a fast, frictionless developer experience. We used to use [browser-sync](https://github.com/BrowserSync/browser-sync) for this. It was overkill. It has all sorts of bells and whistles to sync multiple browsers scrolling positions, a node server for a dashboard, etc. We only need our recently saved files updated.
 
+Now we use [Anubis](https://github.com/billcolumbia/anubis). Anubis doesn't try to do a ton of fancy stuff. It focuses on proxying a web back-end like PHP to its tiny node server. The requests that are proxied get a tiny `client.js` script injected on the fly. This client script creates a socket connection between this build system and your browser. When you save a file, the build system fires off an event, and the anubis client on the other side of the socket knows to inject or reload the page.
 
+### Size Check
+
+We can add maximum file size limits for any files we want in our `build-system/config.js`. Size check will take a look at all of those files we've asked it to check and alert us if any are over the maximum we set. This is really valuable for those times you add a library or big chunk of new functionality and don't at first realize you've doubled the payload size!
+
+Size Check uses tooling bundled with node.js, so there are no dependencies to discuss here 😁.
+
+### Logger
+
+This is just a tiny helper object with a few utility methods on it (3 at the time of writing). It makes sure when we log things like an asset being built, a time, or a file change, that we present all of those in a consistent manner.
+
+We are using the widely adopted [chalk](https://www.npmjs.com/package/chalk) library to make our logs pretty and colorful.
+
+### Manifest
+
+When we add more code to our files and rebuild them, their file names don't change. For browsers, this means that they could potentially not realize we've made changes and load a file by the same name from the cache from a previous visit.
+
+To fix this the build system creates a `manifest.json` file. This file is a list of key:value pairs of all our built files and a hash that represents their contents. So if we rebuild a file and it has no changes, that hash does not change. If we change or add some code, it does.
+
+Our backend can read this manifest file and use this hash to add a query string at the end of the request for the file. Now the browser references the file name with a hash of its contents and will know when to re-download changed files!

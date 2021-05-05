@@ -5,6 +5,7 @@ const { paths } = require('./build-system/config')
  * intellisense would work.
  *
  * @url https://github.com/tailwindlabs/tailwindcss-intellisense
+ * @url https://tailwindcss.com/docs/configuration
  */
 module.exports = {
   mode: 'jit',

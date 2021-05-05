@@ -6,14 +6,14 @@ const glob = require('glob')
 const chokidar = require('chokidar')
 
 /**
- * PostCSS plugin setup
+ * PostCSS setup
  */
+const postcss = require('postcss')
 const autoprefixer = require('autoprefixer')
 const postcssimport = require('postcss-import')
 const tailwind = require('tailwindcss')({
   config: require('../tailwind')
 })
-const postcss = require('postcss')
 const polyfills = require('postcss-preset-env')({
   stage: 1,
   browsers: ['chrome 58', 'firefox 57', 'safari 11', 'edge 16'],
@@ -30,6 +30,12 @@ const plugins = isDev
 const modules = paths.css.modules
 const modulesFlat = () => modules.map((pattern) => glob.sync(pattern)).flat()
 
+/**
+ * 'Post'-process our CSS with postcss plugins and write that CSS to
+ * disk along with source maps (inline in dev mode, separate files when
+ * building for prod)
+ * @param {String} file filename with path
+ */
 const preprocess = (file) => {
   const start = Date.now()
   /**
@@ -61,7 +67,9 @@ const processAll = () => {
 }
 
 /**
- * Preprocess a single module that is given
+ * Preprocess a single module, requires module filePath and event name
+ * @param {String} event event name (add, change, etc from chokidar)
+ * @param {String} filePath file name and path that triggered the event
  */
 const processModule = (event, filePath) => {
   fileEvent(event, filePath, 'Module Changed: Rebuilding')
@@ -71,7 +79,9 @@ const processModule = (event, filePath) => {
 
 /**
  * Find the parent module that references the given partial
- * and preprocess it
+ * and preprocess it. Requires the module filePath and event name
+ * @param {String} event event name (add, change, etc from chokidar)
+ * @param {String} filePath file name and path that triggered the event
  */
 const processParent = (event, filePath) => {
   /**
@@ -86,9 +96,7 @@ const processParent = (event, filePath) => {
      */
     fse.readFile(file, (err, contents) => {
       if (err) console.log(err)
-      if (contents.includes(partial)) {
-        preprocess(file)
-      }
+      if (contents.includes(partial)) preprocess(file)
     })
   })
 }
@@ -100,17 +108,20 @@ processAll()
 
 if (isDev) {
   /**
-   * Use chokidar for our watcher to re-run our batch when
-   * an add or change occurs
+   * Use chokidar for our watcher to re-run our batch ONLY when
+   * an add or change event occurs.
    */
   chokidar.watch(paths.css.watch, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (event !== 'add' && event !== 'change') return
     /**
      * Tailwind JIT is fun! When you update your templates though, we need to
-     * rebuild our CSS so the JIT can re-eval the template files and add the
-     * newly used classes to the CSS!
+     * rebuild our CSS so the JIT can re-evaluate the template files and add
+     * the newly used classes to the CSS!
      */
-    if (filePath.includes('html') || filePath.includes('twig')) processAll()
+    if (filePath.includes('html') || filePath.includes('twig')) {
+      fileEvent('change', filePath, 'Template Changed: Tailwind JIT re-evaulation')
+      processModule('Rebuilding Utility Module', 'src/css/modules/utility.css')
+    }
     /**
      * Normal CSS source files changed, re-process accordingly
      */

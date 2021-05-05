@@ -1,3 +1,4 @@
+const { paths } = require('./build-system/config')
 /**
  * Originally this config object was in build-css.js
  * It was moved to its own file so that the tailwind
@@ -7,7 +8,7 @@
  */
 module.exports = {
   mode: 'jit',
-  purge: ['./static/**/*.{html,twig}', './src/js/**/*.{js,svelte}'],
+  purge: paths.css.purge,
   darkMode: false,
   theme: {
     extend: {}

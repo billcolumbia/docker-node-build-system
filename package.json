@@ -8,7 +8,7 @@
     "css:build": "node ./build-system/build-css.js",
     "payloads": "node ./build-system/size-check.js",
     "manifest": "node ./build-system/create-manifest.js",
-    "reload": "anubis -f './static/dist/**/*.{js,css}' -f './static/**/*.{html,twig}' -t 'http://localhost:8080' -o false",
+    "reload": "anubis -f './static/dist/**/*.{js,css}' -f './static/**/*.{html,twig}' -t 'http://localhost:8080'",
     "dev": "NODE_ENV=development npm-run-all --parallel css:build js:build reload",
     "build": "NODE_ENV=production run-s js:build css:build manifest payloads"
   },

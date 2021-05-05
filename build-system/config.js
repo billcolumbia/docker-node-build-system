@@ -1,20 +1,19 @@
 module.exports = {
+  js: {
+    verboseErrors: false
+  },
   paths: {
     dist: 'static/dist',
     js: {
       modules: ['src/js/modules/*.js'],
-      watch: ['src/js/**/*.js'],
+      watch: ['src/js/**/*.{js,svelte}'],
       dist: 'static/dist/js'
     },
     css: {
       modules: ['src/css/modules/*.css'],
       watch: ['src/css/**/*.css', './static/*.{html,twig}'],
       dist: 'static/dist/css',
-      purge: ['./static/**/*.{html,twig}', './src/js/**/*.js']
-    },
-    images: {
-      src: 'src/images',
-      dist: 'static/dist/images'
+      purge: ['./static/**/*.{html,twig}', './src/js/**/*.{js,svelte}']
     }
   },
   sizeCheck: {

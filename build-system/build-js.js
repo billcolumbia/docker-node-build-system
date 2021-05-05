@@ -1,6 +1,6 @@
 const isDev = process.env.NODE_ENV === 'development'
 const { fileEvent, fileInfo, timer } = require('./logger')
-const { paths } = require('./config')
+const { paths, js } = require('./config')
 const fs = require('fs')
 const esbuild = require('esbuild')
 const sveltePlugin = require('esbuild-svelte')
@@ -22,7 +22,9 @@ const build = (entries) => {
       plugins: [sveltePlugin()],
       target: ['es2020']
     })
-    .catch((err) => console.log(err))
+    .catch((err) => {
+      if (js.verboseErrors) console.log(err)
+    })
   entries.forEach((file) => fileInfo(file))
   timer('Modules', Date.now() - start)
 }

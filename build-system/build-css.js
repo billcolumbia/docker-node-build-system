@@ -2,7 +2,8 @@ const isDev = process.env.NODE_ENV === 'development'
 const fse = require('fs-extra')
 const { fileEvent, timer } = require('./logger')
 const { paths } = require('./config')
-const glob = require('glob')
+const globby = require('globby')
+const { readFile, writeFile } = require('fs/promises')
 const chokidar = require('chokidar')
 
 /**
@@ -28,7 +29,7 @@ const plugins = isDev
  * Main logic
  */
 const modules = paths.css.modules
-const modulesFlat = () => modules.map((pattern) => glob.sync(pattern)).flat()
+const modulesFlat = () => modules.map((pattern) => globby.sync(pattern)).flat()
 
 /**
  * 'Post'-process our CSS with postcss plugins and write that CSS to
@@ -36,7 +37,7 @@ const modulesFlat = () => modules.map((pattern) => glob.sync(pattern)).flat()
  * building for prod)
  * @param {String} file filename with path
  */
-const preprocess = (file) => {
+const preprocess = async (file) => {
   const start = Date.now()
   /**
    * Just the filename without extension is needed for postcss to
@@ -44,16 +45,15 @@ const preprocess = (file) => {
    */
   const fileName = file.match(/(\w|\d|\-)+(?=\.css)/)[0]
   const to = `${paths.css.dist}/${fileName}.css`
-  fse.readFile(file, (err, css) => {
-    if (err) console.log(err)
-    postcss(plugins)
-      .process(css, { from: file, to, map: { inline: isDev } })
-      .then((result) => {
-        fse.outputFile(to, result.css)
-        if (result.map) fse.outputFile(`${to}.map`, result.map.toString())
-        timer(file, Date.now() - start)
-      })
-  })
+  const css = await readFile(file)
+  try {
+    const result = await postcss(plugins).process(css, { from: file, to, map: { inline: isDev } })
+    await writeFile(to, result.css)
+    if (result.map) await writeFile(`${to}.map`, result.map.toString())
+    timer(file, Date.now() - start)
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 /**

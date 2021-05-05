@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-const fs = require('fs')
+const { readFile, writeFile } = require('fs/promises')
 const c = require('chalk')
 const crypto = require('crypto')
-const glob = require('glob')
+const globby = require('globby')
 const { paths } = require('./config')
 
 /*
@@ -25,21 +25,33 @@ const { paths } = require('./config')
  *
  */
 
-// Ripped from rev-hash
-const genHash = (contents) => {
+/**
+ * Ripped from rev-hash, generate hash based on a files contents
+ * @param {Buffer|String} contents contents of a read file
+ * @returns {String} hash of file's contents
+ */
+const genHash = async (filePath) => {
+  const contents = await readFile(filePath)
   if (typeof contents !== 'string' && !Buffer.isBuffer(contents)) {
     throw new TypeError('Expected a Buffer or string')
   }
   return crypto.createHash('md5').update(contents).digest('hex').slice(0, 10)
 }
 
-const manifest = {}
+;(async () => {
+  /**
+   * @description Manifest of assets, mapped to their content hashes
+   * @type Object
+   */
+  const manifest = {}
+  const assets = await globby(`${paths.dist}/**/*.{jpg,png,js,css,svg}`)
 
-glob.sync(`${paths.dist}/**/*.{jpg,png,js,css,svg}`).forEach((file) => {
-  const fileName = file.substring(file.lastIndexOf('/') + 1 || 0)
-  manifest[fileName] = `${fileName}?ver=${genHash(fs.readFileSync(file))}`
-})
+  assets.forEach((file) => {
+    const fileName = file.substring(file.lastIndexOf('/') + 1 || 0)
+    manifest[fileName] = `${fileName}?ver=${genHash(file)}`
+  })
 
-fs.writeFileSync(`${paths.dist}/manifest.json`, JSON.stringify(manifest))
+  await writeFile(`${paths.dist}/manifest.json`, JSON.stringify(manifest))
 
-console.log(c.greenBright(`✓ Created file hashes in ${paths.dist}/manifest.json`))
+  console.log(c.greenBright(`✓ Created file hashes in ${paths.dist}/manifest.json`))
+})()

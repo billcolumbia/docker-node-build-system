@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const fs = require('fs')
-const glob = require('glob')
+const globby = require('globby')
 const c = require('chalk')
 const log = console.log
 const { gzipSync } = require('zlib')
@@ -78,7 +78,7 @@ const logFileStats = ({ file, raw, gzip, overLimit, limit }) => {
  * @return {array} list of fileStats objects
  */
 const getMatches = async (rule) => {
-  const matches = await glob.sync(rule.pattern)
+  const matches = await globby(rule.pattern)
 
   return matches.map((file) => {
     return {

@@ -4,11 +4,11 @@ const { paths, js } = require('./config')
 const fs = require('fs')
 const esbuild = require('esbuild')
 const sveltePlugin = require('esbuild-svelte')
-const glob = require('glob')
+const globby = require('globby')
 const chokidar = require('chokidar')
 
 const modules = paths.js.modules
-const modulesFlat = () => modules.map((pattern) => glob.sync(pattern)).flat()
+const modulesFlat = () => modules.map((pattern) => globby.sync(pattern)).flat()
 
 const build = (entries) => {
   const start = Date.now()
@@ -38,7 +38,9 @@ const buildAll = () => {
 }
 
 /**
- * Build a single module that is given
+ * Build a single module, requires module filePath and event name
+ * @param {String} event event name (add, change, etc from chokidar)
+ * @param {String} filePath file name and path that triggered the event
  */
 const buildModule = (event, filePath) => {
   fileEvent(event, filePath, 'Module Changed: Rebuilding')
@@ -48,7 +50,9 @@ const buildModule = (event, filePath) => {
 
 /**
  * Find the parent module that references the given partial
- * and build it
+ * and build it. Requires the module filePath and event name
+ * @param {String} event event name (add, change, etc from chokidar)
+ * @param {String} filePath file name and path that triggered the event
  */
 const buildParent = (event, filePath) => {
   /**
@@ -76,8 +80,8 @@ buildAll()
 
 if (isDev) {
   /**
-   * Use chokidar for our watcher to re-run our batch when
-   * an add or change occurs
+   * Use chokidar for our watcher to re-run our batch ONLY when
+   * an add or change event occurs.
    */
   chokidar.watch(paths.js.watch, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (event !== 'add' && event !== 'change') return

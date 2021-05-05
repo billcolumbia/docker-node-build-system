@@ -3,13 +3,12 @@ const { fileEvent, fileInfo, timer } = require('./logger')
 const { paths } = require('./config')
 const fs = require('fs')
 const esbuild = require('esbuild')
+const sveltePlugin = require('esbuild-svelte')
 const glob = require('glob')
 const chokidar = require('chokidar')
 
 const modules = paths.js.modules
-const modulesFlat = () => modules
-  .map(pattern => glob.sync(pattern))
-  .flat()
+const modulesFlat = () => modules.map((pattern) => glob.sync(pattern)).flat()
 
 const build = (entries) => {
   const start = Date.now()
@@ -20,15 +19,11 @@ const build = (entries) => {
       sourcemap: isDev ? 'inline' : true,
       outdir: paths.js.dist,
       incremental: isDev,
-      target: [
-        'chrome56',
-        'firefox51',
-        'safari11',
-        'edge16',
-      ]
+      plugins: [sveltePlugin()],
+      target: ['chrome58', 'firefox57', 'safari11', 'edge18']
     })
     .catch((err) => console.log(err))
-  entries.forEach(file => fileInfo(file))
+  entries.forEach((file) => fileInfo(file))
   timer('Modules', Date.now() - start)
 }
 
@@ -45,12 +40,12 @@ const buildAll = () => {
  */
 const buildModule = (event, filePath) => {
   fileEvent(event, filePath, 'Module Changed: Rebuilding')
-  const file = modulesFlat().find(file => file === filePath)
+  const file = modulesFlat().find((file) => file === filePath)
   build([file])
 }
 
 /**
- * Find the parent module that references the given partial 
+ * Find the parent module that references the given partial
  * and build it
  */
 const buildParent = (event, filePath) => {
@@ -82,11 +77,9 @@ if (isDev) {
    * Use chokidar for our watcher to re-run our batch when
    * an add or change occurs
    */
-  chokidar
-    .watch(paths.js.watch, { ignoreInitial: true })
-    .on('all', (event, filePath) => {
-      if (event !== 'add' && event !== 'change') return
-      if (filePath.includes('modules')) buildModule(event, filePath)
-      else buildParent(event, filePath)
-    })
+  chokidar.watch(paths.js.watch, { ignoreInitial: true }).on('all', (event, filePath) => {
+    if (event !== 'add' && event !== 'change') return
+    if (filePath.includes('modules')) buildModule(event, filePath)
+    else buildParent(event, filePath)
+  })
 }

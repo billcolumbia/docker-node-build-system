@@ -46,10 +46,13 @@ const genHash = async (filePath) => {
   const manifest = {}
   const assets = await globby(`${paths.dist}/**/*.{jpg,png,js,css,svg}`)
 
-  assets.forEach((file) => {
-    const fileName = file.substring(file.lastIndexOf('/') + 1 || 0)
-    manifest[fileName] = `${fileName}?ver=${genHash(file)}`
-  })
+  await Promise.all(
+    assets.map(async (file) => {
+      const fileName = file.substring(file.lastIndexOf('/') + 1 || 0)
+      const hash = await genHash(file)
+      manifest[fileName] = `${fileName}?ver=${hash}`
+    })
+  )
 
   await writeFile(`${paths.dist}/manifest.json`, JSON.stringify(manifest))
 

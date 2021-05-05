@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs')
 const glob = require('glob')
-const chalk = require('chalk')
+const c = require('ansi-colors')
 const log = console.log
 const { gzipSync } = require('zlib')
 const { sizeCheck } = require('./config')
@@ -61,7 +61,7 @@ const getFileStats = (file, limit) => {
  * @param {object} fileStats file stats object to destructure
  */
 const logFileStats = ({ file, raw, gzip, overLimit, limit }) => {
-  const statusColor = overLimit ? chalk.bold.redBright : chalk.greenBright
+  const statusColor = overLimit ? c.bold.redBright : c.greenBright
 
   // within limit?
   const status = overLimit
@@ -69,7 +69,7 @@ const logFileStats = ({ file, raw, gzip, overLimit, limit }) => {
     : `limit ${limit}KB`
 
   log(statusColor(`${overLimit ? '✗' : '✓'} ${file}`))
-  log(chalk.dim(`  raw: ${raw}KB | gzip: ${gzip}KB | ${status}\n`))
+  log(c.dim(`  raw: ${raw}KB | gzip: ${gzip}KB | ${status}\n`))
 }
 
 /**

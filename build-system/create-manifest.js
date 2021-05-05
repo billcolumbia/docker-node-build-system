@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const fs = require('fs')
-const chalk = require('chalk')
+const c = require('chalk')
 const crypto = require('crypto')
 const glob = require('glob')
 const { paths } = require('./config')
@@ -35,13 +35,11 @@ const genHash = (contents) => {
 
 const manifest = {}
 
-glob
-  .sync(`${paths.dist}/**/*.{jpg,png,js,css,svg}`)
-  .forEach(file => {
-    const fileName = file.substring(file.lastIndexOf('/') + 1 || 0)
-    manifest[fileName] = `${fileName}?ver=${genHash(fs.readFileSync(file))}`
-  })
+glob.sync(`${paths.dist}/**/*.{jpg,png,js,css,svg}`).forEach((file) => {
+  const fileName = file.substring(file.lastIndexOf('/') + 1 || 0)
+  manifest[fileName] = `${fileName}?ver=${genHash(fs.readFileSync(file))}`
+})
 
 fs.writeFileSync(`${paths.dist}/manifest.json`, JSON.stringify(manifest))
 
-console.log(chalk.greenBright(`✓ Created file hashes in ${paths.dist}/manifest.json`))
+console.log(c.greenBright(`✓ Created file hashes in ${paths.dist}/manifest.json`))

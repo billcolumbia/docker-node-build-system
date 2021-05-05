@@ -11,10 +11,7 @@ const chokidar = require('chokidar')
 const autoprefixer = require('autoprefixer')
 const postcssimport = require('postcss-import')
 const tailwind = require('tailwindcss')({
-  config: require('./tailwind')
-})
-const purgecss = require('@fullhuman/postcss-purgecss')({
-  content: paths.css.purge
+  config: require('../tailwind')
 })
 const postcss = require('postcss')
 const polyfills = require('postcss-preset-env')({
@@ -25,15 +22,13 @@ const polyfills = require('postcss-preset-env')({
 const compress = require('cssnano')
 const plugins = isDev
   ? [postcssimport, tailwind]
-  : [postcssimport, tailwind, purgecss, autoprefixer, polyfills, compress]
+  : [postcssimport, tailwind, autoprefixer, polyfills, compress]
 
 /**
  * Main logic
  */
 const modules = paths.css.modules
-const modulesFlat = () => modules
-  .map(pattern => glob.sync(pattern))
-  .flat()
+const modulesFlat = () => modules.map((pattern) => glob.sync(pattern)).flat()
 
 const preprocess = (file) => {
   const start = Date.now()
@@ -41,11 +36,11 @@ const preprocess = (file) => {
    * Just the filename without extension is needed for postcss to
    * create a matching output file
    */
-  const fileName = file.match(/(\w|\d|\-)+(?=\.pcss)/)[0]
+  const fileName = file.match(/(\w|\d|\-)+(?=\.css)/)[0]
   const to = `${paths.css.dist}/${fileName}.css`
   fse.readFile(file, (err, css) => {
     postcss(plugins)
-      .process(css, { from: file , to })
+      .process(css, { from: file, to })
       .then((result) => {
         fse.outputFile(to, result.css, () => true)
         if (result.map) {
@@ -71,19 +66,19 @@ const processAll = () => {
  */
 const processModule = (event, filePath) => {
   fileEvent(event, filePath, 'Module Changed: Rebuilding')
-  const file = modulesFlat().find(file => file === filePath)
+  const file = modulesFlat().find((file) => file === filePath)
   preprocess(file)
 }
 
 /**
- * Find the parent module that references the given partial 
+ * Find the parent module that references the given partial
  * and preprocess it
  */
 const processParent = (event, filePath) => {
   /**
    * strip path away, so we can match relative paths in parent modules
    */
-  const partial = filePath.match(/(\w|\d|\-)+\.pcss/)[0]
+  const partial = filePath.match(/(\w|\d|\-)+\.css/)[0]
   fileEvent(event, filePath, 'Partial Changed: Rebuilding Parent Module')
   modulesFlat().forEach((file) => {
     /**
@@ -109,11 +104,17 @@ if (isDev) {
    * Use chokidar for our watcher to re-run our batch when
    * an add or change occurs
    */
-  chokidar
-    .watch(paths.css.watch, { ignoreInitial: true })
-    .on('all', (event, filePath) => {
-      if (event !== 'add' && event !== 'change') return
-      if (filePath.includes('modules')) processModule(event, filePath)
-      if (filePath.includes('partials')) processParent(event, filePath)
-    })
+  chokidar.watch(paths.css.watch, { ignoreInitial: true }).on('all', (event, filePath) => {
+    if (event !== 'add' && event !== 'change') return
+    /**
+     * Tailwind JIT is fun! When you update your HTML though, we need to rebuild our
+     * CSS so the JIT can re-eval the template files and add the newly used classes!
+     */
+    if (filePath.includes('html') || filePath.includes('twig')) processAll()
+    /**
+     * Normal CSS source files changed, re-process accordingly
+     */
+    if (filePath.includes('modules')) processModule(event, filePath)
+    if (filePath.includes('partials')) processParent(event, filePath)
+  })
 }

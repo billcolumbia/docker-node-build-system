@@ -16,7 +16,7 @@ const tailwind = require('tailwindcss')({
 const postcss = require('postcss')
 const polyfills = require('postcss-preset-env')({
   stage: 1,
-  browsers: 'IE 11, last 2 versions',
+  browsers: ['chrome 58', 'firefox 57', 'safari 11', 'edge 16'],
   preserve: false
 })
 const compress = require('cssnano')
@@ -39,13 +39,12 @@ const preprocess = (file) => {
   const fileName = file.match(/(\w|\d|\-)+(?=\.css)/)[0]
   const to = `${paths.css.dist}/${fileName}.css`
   fse.readFile(file, (err, css) => {
+    if (err) console.log(err)
     postcss(plugins)
-      .process(css, { from: file, to })
+      .process(css, { from: file, to, map: { inline: isDev } })
       .then((result) => {
-        fse.outputFile(to, result.css, () => true)
-        if (result.map) {
-          fse.outputFile(`${to}.map`, result.map.toString(), () => true)
-        }
+        fse.outputFile(to, result.css)
+        if (result.map) fse.outputFile(`${to}.map`, result.map.toString())
         timer(file, Date.now() - start)
       })
   })
@@ -107,8 +106,9 @@ if (isDev) {
   chokidar.watch(paths.css.watch, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (event !== 'add' && event !== 'change') return
     /**
-     * Tailwind JIT is fun! When you update your HTML though, we need to rebuild our
-     * CSS so the JIT can re-eval the template files and add the newly used classes!
+     * Tailwind JIT is fun! When you update your templates though, we need to
+     * rebuild our CSS so the JIT can re-eval the template files and add the
+     * newly used classes to the CSS!
      */
     if (filePath.includes('html') || filePath.includes('twig')) processAll()
     /**

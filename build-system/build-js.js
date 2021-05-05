@@ -20,7 +20,7 @@ const build = (entries) => {
       outdir: paths.js.dist,
       incremental: isDev,
       plugins: [sveltePlugin()],
-      target: ['chrome58', 'firefox57', 'safari11', 'edge18']
+      target: ['es2020']
     })
     .catch((err) => console.log(err))
   entries.forEach((file) => fileInfo(file))

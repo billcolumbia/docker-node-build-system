@@ -15,9 +15,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "browserslist": [
-    "> 1% in US"
-  ],
   "devDependencies": {
     "anubis": "github:billcolumbia/anubis#semver:^0.9",
     "autoprefixer": "^10.2.5",

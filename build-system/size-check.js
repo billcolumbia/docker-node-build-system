@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs')
 const glob = require('glob')
-const c = require('ansi-colors')
+const c = require('chalk')
 const log = console.log
 const { gzipSync } = require('zlib')
 const { sizeCheck } = require('./config')
@@ -32,7 +32,7 @@ const { sizeCheck } = require('./config')
  *
  * @param {int} bytes size in bytes you want in KB
  */
-const toKB = (bytes) => (bytes/1000).toFixed(1)
+const toKB = (bytes) => (bytes / 1000).toFixed(1)
 
 /**
  * Create and return an object with stats about the given file
@@ -64,9 +64,7 @@ const logFileStats = ({ file, raw, gzip, overLimit, limit }) => {
   const statusColor = overLimit ? c.bold.redBright : c.greenBright
 
   // within limit?
-  const status = overLimit
-    ? `over limit (${gzip}/${limit}KB)`
-    : `limit ${limit}KB`
+  const status = overLimit ? `over limit (${gzip}/${limit}KB)` : `limit ${limit}KB`
 
   log(statusColor(`${overLimit ? '✗' : '✓'} ${file}`))
   log(c.dim(`  raw: ${raw}KB | gzip: ${gzip}KB | ${status}\n`))
@@ -82,7 +80,7 @@ const logFileStats = ({ file, raw, gzip, overLimit, limit }) => {
 const getMatches = async (rule) => {
   const matches = await glob.sync(rule.pattern)
 
-  return matches.map(file => {
+  return matches.map((file) => {
     return {
       ...getFileStats(file, rule.limit)
     }
@@ -107,7 +105,7 @@ const SizeCheck = async (ruleList) => {
   matched
     .flat()
     .sort((a, b) => sortByBoolKey(a, b, 'overLimit'))
-    .forEach(file => logFileStats(file))
+    .forEach((file) => logFileStats(file))
 }
 
 SizeCheck(sizeCheck.options)

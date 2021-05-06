@@ -12,7 +12,7 @@ A build system that cuts through layers of abstraction to directly use the APIs 
 
 ## Docs
 
-We will break down each piece of the system and highlight some of the decision making process behind each.
+We will break down each piece of the system and highlight some of the decision making process behind each. Don't be cry, the entire build system is only about 280 lines of code &mdash; you can get through it in an afternoon!
 
 **Sections:**
 - [CSS](#css)

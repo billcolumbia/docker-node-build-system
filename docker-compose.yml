@@ -21,3 +21,5 @@ services:
       - ./static:/home/node/app/static
       # Build System scripts
       - ./build-system:/home/node/app/build-system
+      - ./tailwind.js:/home/node/app/tailwind.js
+      - ./package.json:/home/node/app/package.json

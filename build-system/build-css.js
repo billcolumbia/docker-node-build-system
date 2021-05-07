@@ -117,8 +117,8 @@ if (isDev) {
      * rebuild our CSS so the JIT can re-evaluate the template files and add
      * the newly used classes to the CSS!
      */
-    if (filePath.includes('html') || filePath.includes('twig')) {
-      fileEvent('change', filePath, 'Template Changed: Tailwind JIT re-evaulation')
+    if (!filePath.includes('.css')) {
+      fileEvent('change', filePath, 'Tailwind JIT re-evaulation')
       processModule('Rebuilding Utility Module', 'src/css/modules/utility.css')
     }
     /**

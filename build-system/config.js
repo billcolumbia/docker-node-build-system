@@ -11,7 +11,7 @@ module.exports = {
     },
     css: {
       modules: ['src/css/modules/*.css'],
-      watch: ['src/css/**/*.css', './static/*.{html,twig}'],
+      watch: ['src/css/**/*.css', './static/**/*.{html,twig}', './src/js/**/*.{js,svelte}'],
       dist: 'static/dist/css',
       purge: ['./static/**/*.{html,twig}', './src/js/**/*.{js,svelte}']
     }

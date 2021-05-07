@@ -1,9 +1,8 @@
 const isDev = process.env.NODE_ENV === 'development'
-const fse = require('fs-extra')
+const fs = require('fs-extra')
 const { fileEvent, timer } = require('./logger')
 const { paths } = require('./config')
 const globby = require('globby')
-const { readFile, writeFile } = require('fs/promises')
 const chokidar = require('chokidar')
 
 /**
@@ -45,11 +44,11 @@ const preprocess = async (file) => {
    */
   const fileName = file.match(/(\w|\d|\-)+(?=\.css)/)[0]
   const to = `${paths.css.dist}/${fileName}.css`
-  const css = await readFile(file)
+  const css = await fs.readFile(file)
   try {
     const result = await postcss(plugins).process(css, { from: file, to, map: { inline: isDev } })
-    await writeFile(to, result.css)
-    if (result.map) await writeFile(`${to}.map`, result.map.toString())
+    await fs.outputFile(to, result.css)
+    if (result.map) await fs.outputFile(`${to}.map`, result.map.toString())
     timer(file, Date.now() - start)
   } catch (err) {
     console.log(err)
@@ -94,7 +93,7 @@ const processParent = (event, filePath) => {
      * read current file and if it references the partial,
      * preprocess it and end the loop
      */
-    fse.readFile(file, (err, contents) => {
+    fs.readFile(file).then((err, contents) => {
       if (err) console.log(err)
       if (contents.includes(partial)) preprocess(file)
     })

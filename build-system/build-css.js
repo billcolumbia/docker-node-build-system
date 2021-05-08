@@ -120,6 +120,7 @@ if (isDev) {
     if (!filePath.includes('.css')) {
       fileEvent('change', filePath, 'Tailwind JIT re-evaulation')
       processModule('Rebuilding Utility Module', 'src/css/modules/utility.css')
+      return
     }
     /**
      * Normal CSS source files changed, re-process accordingly
